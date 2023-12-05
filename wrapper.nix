@@ -10,7 +10,7 @@
   iconv,
   dxvk,
   thVersion,
-  touhouMetadata,
+  touhouMetadata ? import ./thmetadata.nix,
   name,
   enableVpatch,
   enableThprac,

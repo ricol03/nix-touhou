@@ -29,39 +29,7 @@
         inherit gitignoreSource;
       };
 
-      thcrap =
-        let
-          self = {
-            stdenvNoCC,
-            unzip,
-            fetchurl,
-          }:
-            stdenvNoCC.mkDerivation {
-              name = "thcrap-bin";
-              version = "2023-08-30";
-              src = fetchurl {
-                url = "https://github.com/thpatch/thcrap/releases/download/2023-08-30/thcrap.zip";
-                sha256 = "XdJTmVNTa16gcq7gipP7AeYxvD1+K9n4u4kJafeXv5c=";
-              };
-
-              nativeBuildInputs = [
-                unzip
-              ];
-
-              unpackPhase = ''
-                unzip $src
-              '';
-
-              installPhase = ''
-                mkdir -p $out
-                cp -r ./bin ./repos $out
-              '';
-            }
-
-          ; # pkg
-        in
-          pkgs.callPackage self { }
-      ; # thcrap
+      thcrap = pkgs.callPackage ./thcrap.nix { };
 
       thprac = pkgs.fetchurl {
         url =
@@ -101,68 +69,7 @@
 
       defaultWinePrefix = makeWinePrefix { };
 
-      touhouMetadata = {
-        th06 = {
-          mutable = {
-            type = "relative";
-            paths = [ "東方紅魔郷.cfg" "score.dat" "replay/" "log.txt" ];
-          };
-        };
-        th07 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th07.cfg" "score.dat" "replay/" "log.txt" ];
-          };
-        };
-        th08 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th08.cfg" "score.dat" "replay/" "log.txt" ];
-          };
-        };
-        th09 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th09.cfg" "score.dat" "replay/" "log.txt" ];
-          };
-        };
-        th095 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th095.cfg" "scoreth095.dat" "replay/" "log.txt" ];
-          };
-        };
-        th10 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th10.cfg" "scoreth10.dat" "replay/" "log.txt" ];
-          };
-        };
-        th11 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th11.cfg" "scoreth11.dat" "replay/" "log.txt" ];
-          };
-        };
-        th12 = {
-          mutable = {
-            type = "relative";
-            paths = [ "th12.cfg" "scoreth12.dat" "replay/" "log.txt" ];
-          };
-        };
-        th125 = { mutable = { type = "appdata"; }; };
-        th128 = { mutable = { type = "appdata"; }; };
-        th13 = { mutable = { type = "appdata"; }; };
-        th14 = { mutable = { type = "appdata"; }; };
-        th143 = { mutable = { type = "appdata"; }; };
-        th15 = { mutable = { type = "appdata"; }; };
-        th16 = { mutable = { type = "appdata"; }; };
-        th165 = { mutable = { type = "appdata"; }; };
-        th17 = { mutable = { type = "appdata"; }; };
-        th18 = { mutable = { type = "appdata"; }; };
-        th185 = { mutable = { type = "appdata"; }; };
-        th19 = { mutable = { type = "appdata"; }; };
-      };
+      touhouMetadata = import ./thmetadata;
 
       makeTouhou = {
         thVersion,
@@ -241,7 +148,6 @@
           pkgs.callPackage ./wrapper.nix {
             inherit
               thVersion
-              touhouMetadata
               name
               enableVpatch
               enableThprac
