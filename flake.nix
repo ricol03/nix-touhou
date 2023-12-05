@@ -69,8 +69,6 @@
 
       defaultWinePrefix = makeWinePrefix { };
 
-      touhouMetadata = import ./thmetadata;
-
       makeTouhou = {
         thVersion,
         name ? thVersion,
