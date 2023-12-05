@@ -31,7 +31,7 @@
 
       thcrap =
         let
-          pkg = {
+          self = {
             stdenvNoCC,
             unzip,
             fetchurl,
@@ -60,7 +60,7 @@
 
           ; # pkg
         in
-          pkgs.callPackage pkg { }
+          pkgs.callPackage self { }
       ; # thcrap
 
       thprac = pkgs.fetchurl {
@@ -180,16 +180,23 @@
             sha256 ? "",
             patches,
             games,
-          }:
+          } @ args:
             let
+              thcrapPatches = {
+                lang_en = {
+                  repo_id = "thpatch";
+                  patch_id = "lang_en";
+                };
+              };
               cfg = {
-                patches = patches thcrapPatches;
+                patches = args.patches thcrapPatches;
                 inherit games;
               };
               cfgFile = pkgs.writeText "thcrap2nix.json" (builtins.toJSON cfg);
             in
               pkgs.stdenvNoCC.mkDerivation {
                 name = "thcrap-config-${name}";
+
                 nativeBuildInputs = [
                   pkgs.wine
                 ];
@@ -312,6 +319,7 @@
                 nativeBuildInputs = [ makeWrapper ];
                 thcrapPath = optionalString (thcrapPatches != null) thcrap;
                 thcrapConfigPath = optionalString (thcrapPatches != null) (downloadThcrap {
+                  name = thVersion;
                   sha256 = thcrapSha256;
                   patches = thcrapPatches;
                   games = [
@@ -543,7 +551,7 @@
 
       vpatch =
         let
-          vsyncpatch-bin = {
+          self = {
             stdenvNoCC,
             unzip,
             fetchurl
@@ -578,12 +586,20 @@
             }
           ; # vsyncpatch-bin
         in
-          pkgs.callPackage vsyncpatch-bin { }
+          pkgs.callPackage self { }
       ; # vpatch
 
+      makeTouhouOverlay = args: makeTouhou (args // { baseDrv = null; });
+
+      th07 = makeTouhouOverlay {
+        thVersion = "th07";
+        thcrapPatches = patches: [ patches.lang_en ];
+        thcrapSha256 = "sha256-4aym1BTYOcp4isg3tfqEsTUjuLqcs5V7P/CzrwiZvgk=";
+      };
 
     in {
       packages.x86_64-linux = rec {
+        default = th07;
         #thcrap2nix = pkgsWin.callPackage ./thcrap2nix {
         #  winePackageNative = pkgs.winePackages.staging;
         #  inherit gitignoreSource;
@@ -1054,7 +1070,7 @@
 
       packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
 
-      packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
+      #packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
       devShells.x86_64-linux.default = pkgsWin.callPackage
         ({ mkShell, stdenv, rust-bin, windows, jansson }:
           mkShell {
