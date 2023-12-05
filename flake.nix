@@ -329,7 +329,7 @@
                 });
 
                 thpracPath = optionalString enableThprac thprac;
-                vpatchPAth = optionalString enableVpatch vpatch;
+                vpatchPath = optionalString enableVpatch vpatch;
                 baseDrv = optionalString (baseDrv != null) baseDrv;
 
                 inherit enableThprac enableVpatch;
@@ -362,7 +362,7 @@
 
                   if ! [[ -z $enableThcrap ]]; then
                     mkdir "$mutableBase/thcrap-logs"
-                    thcrapMount="--ro-bind\"$wrapperRoot/thcrap\" /opt/thcrap/ --bind \"$mutableBase/thcrap-logs\" /opt/thcrap/logs"
+                    thcrapMount="--ro-bind \"$wrapperRoot/thcrap\" /opt/thcrap/ --bind \"$mutableBase/thcrap-logs\" /opt/thcrap/logs"
                   fi
 
                   if ! [[ -z $enableVpatch ]]; then
@@ -372,7 +372,7 @@
                         cp "$touhouRoot/vpatch.ini" "$mutableBase/vpatch.ini"
                       fi
                     fi
-                    touch "$mutableBase.vpatch.ini"
+                    touch "$mutableBase/vpatch.ini"
                     vpatchMount="--ro-bind \"$wrapperRoot/vpatch.exe\" /opt/touhou/vpatch.exe --ro-bind \"$wrapperRoot/vpatch_${thVersion}.dll\" /opt/touhou/vpatch_${thVersion}.dll --bind \"$mutableBase/vpatch.ini\" /opt/touhou/vpatch.ini"
                   fi
 
@@ -581,6 +581,14 @@
 
               installPhase = ''
                 mkdir -p $out/bin
+                cp vpatch/vpatch_rev4/vpatch.exe $out/bin
+                cp vpatch/vpatch_rev4/*.dll $out/bin
+                cp vpatch/vpatch_rev7/*.dll $out/bin
+                cp vpatch/vpatch_th12.8/*.dll $out/bin
+                cp vpatch/vpatch_th13/*.dll $out/bin
+                cp vpatch/vpatch_th14/*.dll $out/bin
+                cp vpatch/vpatch_th15/*.dll $out/bin
+                cp vpatch_th06_unicode.dll $out/bin/vpatch_th06.dll
               '';
 
             }
