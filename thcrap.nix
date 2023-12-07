@@ -19,12 +19,16 @@
       ];
 
       unpackPhase = ''
+        runHook preUnpack
         unzip $src
+        runHook postUnpack
       '';
 
       installPhase = ''
+        runHook preInstall
         mkdir -vp $out
         cp -rv ./bin ./repos $out
+        runHook postInstall
       '';
 
       passthru.mkConfig = {
@@ -101,6 +105,7 @@
             dontFixup = true;
 
             configurePhase = ''
+              runHook preConfigure
               echo "Creating a wine prefix for running thcrap2nix"
               export BUILD=$PWD
               mkdir .wine
@@ -126,20 +131,24 @@
               export XDG_CACHE_HOME=$BUILD/.cache
               export XDG_CONFIG_HOME=$BUILD/.config
               WINEDEBUG=-all wine wineboot
-              set +x
+              runHook postConfigure
             '';
 
             buildPhase = ''
+              runHook preBuild
               echo "Running thcrap2nix to create thcrap config for: $cfgPretty"
 
               WINEDEBUG=-all wine $BUILD/bin/thcrap2nix.exe $cfgFile
+              runHook postBuild
             '';
 
             installPhase = ''
+              runHook preInstall
               mkdir -p $out/config
               cp -r $BUILD/thcrap2nix.js $out/config
               echo -n "Created output file: "
               cat $BUILD/thcrap2nix.js
+              runHook postInstall
             '';
 
           }
@@ -213,6 +222,7 @@
           dontFixup = true;
 
           configurePhase = ''
+            runHook preConfigure
             echo "Creating a wine prefix for running thcrap2nix"
             export BUILD=$PWD
             mkdir .wine
@@ -228,9 +238,13 @@
 
             echo "Booting wine"
             wine wineboot
+
+            runHook postConfigure
           '';
 
           buildPhase = ''
+            runHook preBuild
+
             echo -n "Running thcrap2nix to create thcrap config for: "
             cat $cfgPretty
 
@@ -238,10 +252,14 @@
           '';
 
           installPhase = ''
+            runHook preInstall
+
             mkdir -p $out/config
             cp -r $BUILD/thcrap2nix.js $out/config
             echo -n "Created output file: "
             cat $BUILD/thcrap2nix.js
+
+            runHook postInstall
           '';
 
         }

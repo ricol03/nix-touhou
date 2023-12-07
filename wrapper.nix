@@ -84,16 +84,6 @@
         appdataMount
     ;
 
-    #thcrapConfig = callPackage thcrap.mkConfig {
-    #  name = thVersion;
-    #  sha256 = thcrapSha256;
-    #  patches = [ { repo_id = "thpatch"; patch_id = "lang_en"; } ];
-    #  games = [
-    #    thVersion
-    #    "${thVersion}_custom"
-    #  ];
-    #};
-
   in
     stdenvNoCC.mkDerivation {
       name = pname;
@@ -275,6 +265,7 @@
 
 
       installPhase = ''
+        runHook preInstall
         mkdir -p $out/bin
         mkdir -p $out/share/thcrap-wrapper
         wrapperRoot=$out/share/thcrap-wrapper
@@ -318,6 +309,7 @@
           --set enableThprac "$enableThprac" --set enableVpatch "$enableVpatch" --set enableThcrap "$enableThcrap" \
           --set enableBase "$enableBase"
         echo "Done!"
+        runHook postInstall
       ''; # installPhase
     }
 
