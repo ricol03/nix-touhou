@@ -1,6 +1,7 @@
 {
   stdenvNoCC,
   lib,
+  callPackage,
   bash,
   makeWrapper,
   writeScript,
@@ -18,12 +19,14 @@
   thcrapPatches,
   thcrap,
   downloadThcrap,
+  thcrapConfig,
   thcrapSha256,
   thprac,
   vpatch,
   winePrefix,
 }:
   assert (builtins.hasAttr thVersion touhouMetadata);
+  assert (builtins.isFunction downloadThcrap);
   let
     inherit (lib.strings) optionalString;
 
@@ -83,6 +86,16 @@
         appdataMount
     ;
 
+    #thcrapConfig = callPackage thcrap.mkConfig {
+    #  name = thVersion;
+    #  sha256 = thcrapSha256;
+    #  patches = [ { repo_id = "thpatch"; patch_id = "lang_en"; } ];
+    #  games = [
+    #    thVersion
+    #    "${thVersion}_custom"
+    #  ];
+    #};
+
   in
     stdenvNoCC.mkDerivation {
       name = pname;
@@ -91,15 +104,7 @@
       phases = [ "installPhase" ];
       nativeBuildInputs = [ makeWrapper ];
       thcrapPath = optionalString (thcrapPatches != null) thcrap;
-      thcrapConfigPath = optionalString (thcrapPatches != null) (downloadThcrap {
-        name = thVersion;
-        sha256 = thcrapSha256;
-        patches = thcrapPatches;
-        games = [
-          thVersion
-          "${thVersion}_custom"
-        ];
-      });
+      thcrapConfigPath = optionalString (thcrapPatches != null) thcrapConfig;
 
       thpracPath = optionalString enableThprac thprac;
       vpatchPath = optionalString enableVpatch vpatch;

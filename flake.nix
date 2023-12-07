@@ -85,7 +85,7 @@
             sha256 ? "",
             patches,
             games,
-          } @ args:
+          }:
             let
               thcrapPatches = {
                 lang_en = {
@@ -94,13 +94,20 @@
                 };
               };
               cfg = {
-                patches = args.patches thcrapPatches;
+                patches = patches thcrapPatches;
                 inherit games;
               };
               cfgFile = pkgs.writeText "thcrap2nix.json" (builtins.toJSON cfg);
+              cfgPretty = pkgs.lib.generators.toPretty { allowPrettyValues = true; } cfg;
+
+              prettyPatches = builtins.concatStringsSep "-" (builtins.map (patch: patch.patch_id) cfg.patches);
+              #selectedPatchesHash = builtins.hashFile "sha256" cfgFile;
             in
               pkgs.stdenvNoCC.mkDerivation {
-                name = "thcrap-config-${name}";
+                #name = "thcrap-config-${name}-${prettyPatches}";
+                #name = "thcc${name}-${prettyPatches}";
+                name = "thcrap${name}-${prettyPatches}";
+                #name = "thcrap-config-${name}-${selectedPatchesHash}";
 
                 nativeBuildInputs = [
                   pkgs.wine
@@ -111,9 +118,13 @@
                 outputHash = sha256;
                 impureEnvVars = [ "http_proxy" "https_proxy" ];
 
+                inherit cfgPretty;
+
                 phases = [ "buildPhase" ];
 
                 buildPhase = ''
+                  echo "Building thcrap config for ${name} using ${cfgFile}:"
+                  echo $cfgPretty
                   export BUILD=$PWD
                   mkdir .wine
                   export WINEPREFIX=$BUILD/.wine
@@ -127,7 +138,6 @@
                   for i in ${thcrap2nix}/bin/*; do
                     ln -s $i $BUILD/bin/
                   done
-
                   ln -s ${pkgsWin.jansson}/bin/libgcc* $BUILD/bin/
                   wine wineboot
                   echo "Wineboot finished"
@@ -135,13 +145,35 @@
                   export patch_http_proxy=garbage://site
                   export patch_https_proxy=garbage://site
                   export patch_NO_PROXY="thpatch.net,thpatch.rcopky.top"
+                  echo Running thcrap2nix to create config file
+                  echo wine $BUILD/bin/thcrap2nix.exe ${cfgFile}
                   wine $BUILD/bin/thcrap2nix.exe ${cfgFile}
                   mkdir -p $out/config
                   cp -r $BUILD/repos $out
                   cp $BUILD/thcrap2nix.js $out/config
+                  echo -n "Created output file: "
+                  cat $BUILD/thcrap2nix.js
                 '';
               }
           ; # downloadThcrap
+
+          thcrapConfig = pkgs.callPackage thcrap.mkConfig {
+            jansson = pkgsWin.jansson;
+
+            inherit thcrap2nix;
+
+            name = thVersion;
+            sha256 = thcrapSha256;
+            patchSpec = [
+              { repo_id = "thpatch"; patch_id = "lang_en"; }
+            ];
+
+            games = [
+              thVersion
+              "${thVersion}_custom"
+            ];
+          }; # thcrapConfig
+
         in
           pkgs.callPackage ./wrapper.nix {
             inherit
@@ -154,6 +186,7 @@
               thcrap
               downloadThcrap
               thcrapSha256
+              thcrapConfig
               thprac
               vpatch
               winePrefix
@@ -209,17 +242,23 @@
           pkgs.callPackage self { }
       ; # vpatch
 
-      makeTouhouOverlay = args: makeTouhou (args // { baseDrv = null; });
+      #makeTouhouOverlay = args: makeTouhou (args // { baseDrv = null; });
 
-      th07 = makeTouhouOverlay {
+      th07 = makeTouhou {
         thVersion = "th07";
-        thcrapPatches = patches: [ patches.lang_en ];
-        thcrapSha256 = "sha256-4aym1BTYOcp4isg3tfqEsTUjuLqcs5V7P/CzrwiZvgk=";
+        thcrapPatches = patches: with patches; [
+          lang_en
+          #western_name_order
+        ];
+        #thcrapSha256 = "sha256-4aym1BTYOcp4isg3tfqEsTUjuLqcs5V7P/CzrwiZvgk=";
+        #thcrapSha256 = "sha256-DSIZLjVtEBon25kqSnKRD0ZIfr+mzsXuoDi8jG+FPsY=";
+        thcrapSha256 = "sha256-ANXCxm4E9RZ47SYWJDbGwxl7E9Jb36Z2CvneT+I1biE=";
       };
 
     in {
       packages.x86_64-linux = rec {
         default = th07;
+        inherit th07;
         #thcrap2nix = pkgsWin.callPackage ./thcrap2nix {
         #  winePackageNative = pkgs.winePackages.staging;
         #  inherit gitignoreSource;
