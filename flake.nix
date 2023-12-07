@@ -37,39 +37,52 @@
         sha256 = "sha256-eIfkABD0Wfg0/NjtfMO+yjfZFvF7oLfUjOaR0pkv1FM=";
       };
 
-      makeWinePrefix = { defaultFont ? "Noto Sans CJK SC", fontPackage ? pkgs.noto-fonts-cjk-sans }:
-        let
-          touhou-wineprefix = { stdenvNoCC, wine, pkgsCross, bash }:
-            stdenvNoCC.mkDerivation {
-              name = "touhou-wineprefix";
-              nativeBuildInputs = [ wine ];
-              phases = [ "installPhase" ];
+      mkTouhouWinePrefix = { stdenvNoCC, wine, pkgsCross, bash, noto-fonts-cjk-sans }:
 
-              dxvk32_dir = "${pkgsCross.mingw32.dxvk_2}/bin";
-              mcfgthreads32_dir = "${pkgsCross.mingw32.windows.mcfgthreads_pre_gcc_13}/bin";
+        stdenvNoCC.mkDerivation (final: {
+          name = "touhou-wineprefix";
 
-              installPhase = ''
-                runHook preInstall
-                export WINEPREFIX=$out/share/wineprefix
-                mkdir -p $WINEPREFIX
-                wineboot -i
-                wineserver --wait || true
-                echo Setting up DXVK
-                ${bash}/bin/bash ${./setup_dxvk.sh}
-                echo DXVK installed
-                wineserver --wait || true
-                echo "${defaultFont}" > $out/share/wineprefix/default_font.txt
-                find ${fontPackage} -type f -name "*.ttc" -exec cp {} $out/share/wineprefix/drive_c/windows/Fonts/ \;
-                find ${fontPackage} -type f -name "*.ttf" -exec cp {} $out/share/wineprefix/drive_c/windows/Fonts/ \;
-                runHook postInstall
-              '';
-            }
-          ; # touhou-wineprefix
-        in
-          pkgs.callPackage touhou-wineprefix { }
-      ; # makeWinePrefix
+          nativeBuildInputs = [
+            wine
+          ];
 
-      defaultWinePrefix = makeWinePrefix { };
+          # These can be overriden with .overrideAttrs.
+          fontPackage = noto-fonts-cjk-sans;
+          defaultFont = "Noto Sans CJK SC";
+
+          buildInputs = [
+            final.fontPackage
+          ];
+
+          phases = [ "installPhase" ];
+
+          dxvk32_dir = "${pkgsCross.mingw32.dxvk_2}/bin";
+          mcfgthreads32_dir = "${pkgsCross.mingw32.windows.mcfgthreads_pre_gcc_13}/bin";
+
+          installPhase = ''
+            runHook preInstall
+            export XDG_CACHE_HOME=$(pwd)/.cache
+            export XDG_CONFIG_HOME=$(pwd)/.config
+            export XDG_DATA_DIR=$(pwd)/share
+            mkdir -p $XDG_DATA_DIR
+            mkdir -p $XDG_CACHE_HOME
+            mkdir -p $XDG_CONFIG_HOME
+            export WINEPREFIX=$out/share/wineprefix
+            mkdir -p $WINEPREFIX
+            wineboot -i
+            wineserver --wait || true
+            echo Setting up DXVK
+            ${bash}/bin/bash ${./setup_dxvk.sh}
+            echo DXVK installed
+            wineserver --wait || true
+            echo "$defaultFont" > $out/share/wineprefix/default_font.txt
+            find $fontPackage -type f -name "*.ttc" -exec cp {} $out/share/wineprefix/drive_c/windows/Fonts/ \;
+            find $fontPackage -type f -name "*.ttf" -exec cp {} $out/share/wineprefix/drive_c/windows/Fonts/ \;
+            runHook postInstall
+          '';
+        })
+      ; # mkTouhouWinePrefix
+      winePrefix = pkgs.callPackage mkTouhouWinePrefix { };
 
       makeTouhou = {
         thVersion,
@@ -79,7 +92,7 @@
         thcrapPatches ? null,
         thcrapSha256 ? "",
         baseDrv ? null,
-        winePrefix ? defaultWinePrefix,
+        winePrefix ? winePrefix,
       }:
         let
           thcrapConfig = pkgs.callPackage thcrap.mkConfig {
@@ -118,57 +131,7 @@
           }
       ; # makeTouhou
 
-      vpatch =
-        let
-          self = {
-            stdenvNoCC,
-            unzip,
-            fetchurl
-          }:
-            stdenvNoCC.mkDerivation {
-              name = "vsyncpatch-bin";
-              version = "2015-11-28";
-
-              src = fetchurl {
-                url = "https://maribelhearn.com/mirror/VsyncPatch.zip";
-                sha256 = "XVmbdzF6IIpRWQiKAujWzy6cmA8llG34jkqUb29Ec44=";
-                # https://web.archive.org/web/20220824223436if_/https://maribelhearn.com/mirror/VsyncPatch.zip
-              };
-              srcthcrap = fetchurl {
-                url = "https://www.thpatch.net/w/images/1/1a/vpatch_th06_unicode.zip";
-                sha256 = "06x8gQNmz8UZVIt6hjUJHvpWS3SVz0iWG2kqJIBN9M4=";
-              };
-
-              nativeBuildInputs = [
-                unzip
-              ];
-
-              unpackPhase = ''
-                runHook preUnpack
-                unzip $src
-                unzip $srcthcrap
-                runHook postUnpack
-              '';
-
-              installPhase = ''
-                runHook preInstall
-                mkdir -p $out/bin
-                cp vpatch/vpatch_rev4/vpatch.exe $out/bin
-                cp vpatch/vpatch_rev4/*.dll $out/bin
-                cp vpatch/vpatch_rev7/*.dll $out/bin
-                cp vpatch/vpatch_th12.8/*.dll $out/bin
-                cp vpatch/vpatch_th13/*.dll $out/bin
-                cp vpatch/vpatch_th14/*.dll $out/bin
-                cp vpatch/vpatch_th15/*.dll $out/bin
-                cp vpatch_th06_unicode.dll $out/bin/vpatch_th06.dll
-                runHook postInstall
-              '';
-
-            }
-          ; # vsyncpatch-bin
-        in
-          pkgs.callPackage self { }
-      ; # vpatch
+      vpatch = pkgs.callPackage ./vpatch.nix { };
 
       #makeTouhouOverlay = args: makeTouhou (args // { baseDrv = null; });
 
@@ -187,8 +150,12 @@
       packages.x86_64-linux = rec {
         default = th07;
         inherit th07;
+
+        _intermediates = {
+          inherit winePrefix;
+        };
+
         touhouTools = rec {
-          defaultWinePrefix = makeWinePrefix { };
           vpatch = pkgs.callPackage ({ stdenvNoCC, unzip, fetchurl }:
             stdenvNoCC.mkDerivation {
               name = "vsyncpatch-bin";
