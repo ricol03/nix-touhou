@@ -80,83 +80,6 @@
         winePrefix ? defaultWinePrefix,
       }:
         let
-          downloadThcrap = {
-            name,
-            sha256 ? "",
-            patches,
-            games,
-          }:
-            let
-              thcrapPatches = {
-                lang_en = {
-                  repo_id = "thpatch";
-                  patch_id = "lang_en";
-                };
-              };
-              cfg = {
-                patches = patches thcrapPatches;
-                inherit games;
-              };
-              cfgFile = pkgs.writeText "thcrap2nix.json" (builtins.toJSON cfg);
-              cfgPretty = pkgs.lib.generators.toPretty { allowPrettyValues = true; } cfg;
-
-              prettyPatches = builtins.concatStringsSep "-" (builtins.map (patch: patch.patch_id) cfg.patches);
-              #selectedPatchesHash = builtins.hashFile "sha256" cfgFile;
-            in
-              pkgs.stdenvNoCC.mkDerivation {
-                #name = "thcrap-config-${name}-${prettyPatches}";
-                #name = "thcc${name}-${prettyPatches}";
-                name = "thcrap${name}-${prettyPatches}";
-                #name = "thcrap-config-${name}-${selectedPatchesHash}";
-
-                nativeBuildInputs = [
-                  pkgs.wine
-                ];
-
-                outputHashMode = "recursive";
-                outputHashAlgo = "sha256";
-                outputHash = sha256;
-                impureEnvVars = [ "http_proxy" "https_proxy" ];
-
-                inherit cfgPretty;
-
-                phases = [ "buildPhase" ];
-
-                buildPhase = ''
-                  echo "Building thcrap config for ${name} using ${cfgFile}:"
-                  echo $cfgPretty
-                  export BUILD=$PWD
-                  mkdir .wine
-                  export WINEPREFIX=$BUILD/.wine
-                  mkdir -p $BUILD/bin
-                  for i in ${thcrap}/bin/*; do
-                    ln -s $i $BUILD/bin
-                  done
-
-                  cp -r ${thcrap}/repos $BUILD
-                  chmod -R 777 $BUILD/repos
-                  for i in ${thcrap2nix}/bin/*; do
-                    ln -s $i $BUILD/bin/
-                  done
-                  ln -s ${pkgsWin.jansson}/bin/libgcc* $BUILD/bin/
-                  wine wineboot
-                  echo "Wineboot finished"
-                  export RUST_LOG=trace
-                  export patch_http_proxy=garbage://site
-                  export patch_https_proxy=garbage://site
-                  export patch_NO_PROXY="thpatch.net,thpatch.rcopky.top"
-                  echo Running thcrap2nix to create config file
-                  echo wine $BUILD/bin/thcrap2nix.exe ${cfgFile}
-                  wine $BUILD/bin/thcrap2nix.exe ${cfgFile}
-                  mkdir -p $out/config
-                  cp -r $BUILD/repos $out
-                  cp $BUILD/thcrap2nix.js $out/config
-                  echo -n "Created output file: "
-                  cat $BUILD/thcrap2nix.js
-                '';
-              }
-          ; # downloadThcrap
-
           thcrapConfig = pkgs.callPackage thcrap.mkConfig {
             jansson = pkgsWin.jansson;
 
@@ -184,7 +107,6 @@
               baseDrv
               thcrapPatches
               thcrap
-              downloadThcrap
               thcrapSha256
               thcrapConfig
               thprac

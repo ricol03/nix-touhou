@@ -18,7 +18,6 @@
   baseDrv,
   thcrapPatches,
   thcrap,
-  downloadThcrap,
   thcrapConfig,
   thcrapSha256,
   thprac,
@@ -26,7 +25,6 @@
   winePrefix,
 }:
   assert (builtins.hasAttr thVersion touhouMetadata);
-  assert (builtins.isFunction downloadThcrap);
   let
     inherit (lib.strings) optionalString;
 
