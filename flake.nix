@@ -92,7 +92,7 @@
         thcrapPatches ? null,
         thcrapSha256 ? "",
         baseDrv ? null,
-        winePrefix ? winePrefix,
+        winePrefix ? (pkgs.callPackage mkTouhouWinePrefix { }),
       }:
         let
           thcrapConfig = pkgs.callPackage thcrap.mkConfig {
@@ -104,6 +104,8 @@
             sha256 = thcrapSha256;
             patchSpec = [
               { repo_id = "thpatch"; patch_id = "lang_en"; }
+              #{ repo_id = "nmlgc"; patch_id = "western_name_order"; }
+              #{ repo_id = "nmlgc"; patch_id = "base_tsa"; }
             ];
 
             games = [
@@ -141,9 +143,8 @@
           lang_en
           #western_name_order
         ];
-        #thcrapSha256 = "sha256-4aym1BTYOcp4isg3tfqEsTUjuLqcs5V7P/CzrwiZvgk=";
-        #thcrapSha256 = "sha256-DSIZLjVtEBon25kqSnKRD0ZIfr+mzsXuoDi8jG+FPsY=";
-        thcrapSha256 = "sha256-ANXCxm4E9RZ47SYWJDbGwxl7E9Jb36Z2CvneT+I1biE=";
+        #thcrapSha256 = "sha256-QKm9b4qZLsHoDXgn3yqLrJjsfkSqDZEK2VtfN0fuElQ=";
+        thcrapSha256 = "sha256-4aym1BTYOcp4isg3tfqEsTUjuLqcs5V7P/CzrwiZvgk=";
       };
 
     in {
@@ -154,6 +155,7 @@
         _intermediates = {
           inherit winePrefix;
         };
+        inherit thcrap2nix;
 
         touhouTools = rec {
           vpatch = pkgs.callPackage ({ stdenvNoCC, unzip, fetchurl }:

@@ -86,6 +86,9 @@
 
   in
     stdenvNoCC.mkDerivation {
+      passthru = {
+        inherit thcrapConfig;
+      };
       name = pname;
       gameExe = "${thVersion}.exe";
       inherit thVersion;
