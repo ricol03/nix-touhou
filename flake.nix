@@ -144,7 +144,7 @@
           #western_name_order
         ];
         #thcrapSha256 = "sha256-QKm9b4qZLsHoDXgn3yqLrJjsfkSqDZEK2VtfN0fuElQ=";
-        thcrapSha256 = "sha256-4aym1BTYOcp4isg3tfqEsTUjuLqcs5V7P/CzrwiZvgk=";
+        thcrapSha256 = "sha256-Vnq17qGmJzaZVrZfOkkRmhpd2CoexbU7RRHCvsMDwWg=";
       };
 
     in {
